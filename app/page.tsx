@@ -173,7 +173,7 @@ export default function Home() {
       </div>
 
       <header className="header shell">
-        <a className="brand" ="#inicio">
+        <a className="brand" href="#inicio">
           <span className="brandmark">
             <Heart size={22} fill="currentColor" />
           </span>
