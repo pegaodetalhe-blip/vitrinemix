@@ -191,7 +191,7 @@ export default function SellPage() {
           photoRows.push({
             product_id: product.id,
             photo_url: publicData.publicUrl,
-            position: index,
+            position: index + 1,
           });
         }
 
