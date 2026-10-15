@@ -56,7 +56,7 @@ export default function Home() {
       const { data, error: queryError } = await supabase
         .from("products")
         .select("id, title, description, category, price, condition, city, seller_id, created_at")
-        .eq("status", "available")
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (queryError) {
