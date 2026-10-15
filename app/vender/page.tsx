@@ -1,9 +1,9 @@
-
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, LoaderCircle, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ImagePlus, LoaderCircle, X, LogIn } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const MAX_PHOTOS = 4;
@@ -17,7 +17,7 @@ const categories = [
   "Beleza",
   "Esporte",
   "Infantil",
-  "Outros"
+  "Outros",
 ];
 
 export default function SellPage() {
@@ -47,8 +47,7 @@ export default function SellPage() {
         return;
       }
 
-      const { data, error: authError } =
-        await supabase.auth.getUser();
+      const { data, error: authError } = await supabase.auth.getUser();
 
       if (!active) return;
 
@@ -127,7 +126,6 @@ export default function SellPage() {
     setLoading(true);
 
     try {
-      // Confirma que a sessão ainda pertence ao vendedor.
       const { data: authData, error: authError } =
         await supabase.auth.getUser();
 
@@ -135,7 +133,6 @@ export default function SellPage() {
         throw new Error("Sua sessão expirou. Entre novamente.");
       }
 
-      // Cria o anúncio associado à conta autenticada.
       const { data: product, error: productError } = await supabase
         .from("products")
         .insert({
@@ -145,7 +142,7 @@ export default function SellPage() {
           category,
           price: numericPrice,
           condition,
-          status: "active"
+          status: "active",
         })
         .select("id")
         .single();
@@ -166,12 +163,9 @@ export default function SellPage() {
       try {
         for (let index = 0; index < files.length; index++) {
           const file = files[index];
-
           const extension =
             file.name.split(".").pop()?.toLowerCase() || "jpg";
 
-          // A primeira pasta é o ID do usuário, conforme a política
-          // de segurança do bucket.
           const path =
             `${userId}/${product.id}/${crypto.randomUUID()}.${extension}`;
 
@@ -179,7 +173,7 @@ export default function SellPage() {
             .from("product-photos")
             .upload(path, file, {
               contentType: file.type,
-              upsert: false
+              upsert: false,
             });
 
           if (uploadError) {
@@ -197,7 +191,7 @@ export default function SellPage() {
           photoRows.push({
             product_id: product.id,
             photo_url: publicData.publicUrl,
-            position: index
+            position: index,
           });
         }
 
@@ -213,7 +207,6 @@ export default function SellPage() {
           }
         }
       } catch (photoUploadError) {
-        // Tenta remover os arquivos enviados se o registro das fotos falhar.
         if (uploadedPaths.length > 0) {
           await supabase.storage
             .from("product-photos")
@@ -249,32 +242,89 @@ export default function SellPage() {
   if (!userId) {
     return (
       <main className="shell" style={{ padding: "48px 16px" }}>
-        <a href="/" className="text-link">
+        <Link href="/" className="text-link">
           <ArrowLeft size={16} /> Voltar à vitrine
-        </a>
+        </Link>
 
-        <h1 style={{ marginTop: 24 }}>Entre para anunciar</h1>
-        <p>
-          {error ||
-            "Você precisa estar conectado à sua conta para publicar produtos."}
-        </p>
-        <p>
-          A página de login ainda precisa estar disponível para que
-          os vendedores possam entrar e publicar anúncios.
-        </p>
+        <section
+          style={{
+            maxWidth: 480,
+            margin: "40px auto",
+            padding: 28,
+            textAlign: "center",
+            background: "#fff",
+            border: "1px solid #eee5f7",
+            borderRadius: 20,
+            boxShadow: "0 12px 40px rgba(75, 35, 110, 0.08)",
+          }}
+        >
+          <h1 style={{ marginTop: 0 }}>Entre para anunciar</h1>
+
+          <p>
+            Entre na sua conta para publicar seus produtos gratuitamente
+            na VitrineMix.
+          </p>
+
+          {error && (
+            <p
+              role="alert"
+              style={{
+                color: "#b42318",
+                background: "#fff0ef",
+                padding: 12,
+                borderRadius: 10,
+              }}
+            >
+              {error}
+            </p>
+          )}
+
+          <Link
+            href="/login"
+            className="button coral-button"
+            style={{
+              display: "inline-flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 8,
+              padding: "14px 24px",
+              textDecoration: "none",
+              marginTop: 12,
+            }}
+          >
+            <LogIn size={18} />
+            Entrar na minha conta
+          </Link>
+
+          <p
+            style={{
+              marginTop: 20,
+              fontSize: 14,
+              color: "#716879",
+            }}
+          >
+            Ainda não tem acesso? A conta do vendedor precisa ser
+            cadastrada no sistema.
+          </p>
+        </section>
       </main>
     );
   }
 
   return (
-    <main className="shell" style={{ maxWidth: 760, padding: "36px 16px 64px" }}>
-      <a href="/" className="text-link">
+    <main
+      className="shell"
+      style={{ maxWidth: 760, padding: "36px 16px 64px" }}
+    >
+      <Link href="/" className="text-link">
         <ArrowLeft size={16} /> Voltar à vitrine
-      </a>
+      </Link>
 
       <header style={{ margin: "28px 0" }}>
         <span className="eyebrow">VITRINEMIX • ANÚNCIO GRATUITO</span>
-        <h1 style={{ margin: "8px 0" }}>Coloque seu achadinho na vitrine</h1>
+        <h1 style={{ margin: "8px 0" }}>
+          Coloque seu achadinho na vitrine
+        </h1>
         <p>Conte um pouco sobre o produto e adicione até quatro fotos.</p>
       </header>
 
@@ -298,7 +348,9 @@ export default function SellPage() {
             onChange={(event) => setCategory(event.target.value)}
           >
             {categories.map((item) => (
-              <option key={item} value={item}>{item}</option>
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
           </select>
         </label>
@@ -357,7 +409,7 @@ export default function SellPage() {
               border: "2px dashed #d8c9ef",
               borderRadius: 16,
               padding: 24,
-              cursor: "pointer"
+              cursor: "pointer",
             }}
           >
             <ImagePlus size={24} />
@@ -387,7 +439,7 @@ export default function SellPage() {
                     gap: 12,
                     padding: 10,
                     border: "1px solid #eee",
-                    borderRadius: 10
+                    borderRadius: 10,
                   }}
                 >
                   <span style={{ overflowWrap: "anywhere" }}>
@@ -405,7 +457,9 @@ export default function SellPage() {
             </div>
           )}
 
-          <small>{files.length} de {MAX_PHOTOS} fotos selecionadas</small>
+          <small>
+            {files.length} de {MAX_PHOTOS} fotos selecionadas
+          </small>
         </section>
 
         {error && (
@@ -428,7 +482,7 @@ export default function SellPage() {
             justifyContent: "center",
             padding: "14px 20px",
             border: 0,
-            cursor: loading ? "wait" : "pointer"
+            cursor: loading ? "wait" : "pointer",
           }}
         >
           {loading ? (
@@ -436,13 +490,10 @@ export default function SellPage() {
               <LoaderCircle size={18} /> Publicando...
             </>
           ) : (
-            <>
-              Publicar anúncio grátis <ArrowLeft size={18} />
-            </>
+            <>Publicar anúncio grátis</>
           )}
         </button>
       </form>
     </main>
   );
 }
-
