@@ -16,7 +16,6 @@ type Product = {
   category: string;
   price: number;
   condition: string;
-  city: string;
   seller_id: string;
   created_at: string;
 };
@@ -55,7 +54,7 @@ export default function Home() {
 
       const { data, error: queryError } = await supabase
         .from("products")
-        .select("id, title, description, category, price, condition, city, seller_id, created_at")
+        .select("id, title, description, category, price, condition, seller_id, created_at")
         .eq("status", "active")
         .order("created_at", { ascending: false });
 
@@ -219,7 +218,9 @@ export default function Home() {
                     <span className="product-category">{product.category}</span>
                     <h3>{product.title}</h3>
                     <strong className="price">{money(Number(product.price))}</strong>
-                    <div className="product-location"><MapPin size={13}/>{product.city}</div>
+                    <div className="product-location">
+  <MapPin size={13}/>Campos dos Goytacazes
+</div>
                     <p>{product.description}</p>
                     <a className="contact-button" href="#vender">
                       <MessageCircle size={16}/> Tenho interesse
