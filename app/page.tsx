@@ -100,7 +100,9 @@ export default function Home() {
   const [error, setError] = useState("");
   const [gallery, setGallery] = useState<GalleryProduct | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [contactMessage, setContactMessage] = useState("");
+  const [contactMessage, setContactMessage] = useState<
+  Record<string, string>
+>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -262,13 +264,19 @@ export default function Home() {
     const number = whatsappNumber(sellerPhones[product.seller_id]);
 
     if (!number) {
-      setContactMessage(
-        "O telefone deste vendedor ainda não está disponível para contato. Tente novamente mais tarde."
-      );
+     setContactMessage((prev) => ({
+  ...prev,
+  [product.id]:
+    "O telefone deste vendedor ainda não está disponível para contato. Tente novamente mais tarde.",
+}));
       return;
     }
 
-    setContactMessage("");
+    setContactMessage((prev) => {
+  const next = { ...prev };
+  delete next[product.id];
+  return next;
+});
 
     const message = `Olá! Tenho interesse no produto "${product.title}" anunciado na VitrineMix por ${money(Number(product.price))}. Ele ainda está disponível?`;
 
@@ -594,20 +602,22 @@ export default function Home() {
                       <MessageCircle size={16} /> Tenho interesse
                     </button>
 
-                    {contactMessage && !whatsappNumber(sellerPhones[product.seller_id]) && (
-                      <p
-                        role="status"
-                        style={{
-                          color: "#9a3412",
-                          background: "#fff7ed",
-                          borderRadius: 8,
-                          padding: 10,
-                          fontSize: 13,
-                        }}
-                      >
-                        {contactMessage}
-                      </p>
-                    )}
+                    
+{contactMessage[product.id] && (
+  <p
+    role="status"
+    style={{
+      color: "#9a3412",
+      background: "#fff7ed",
+      borderRadius: 8,
+      padding: 10,
+      fontSize: 13,
+    }}
+  >
+    {contactMessage[product.id]}
+  </p>
+)}
+
                   </div>
                 </article>
               );
