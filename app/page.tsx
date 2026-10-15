@@ -173,7 +173,7 @@ export default function Home() {
       </div>
 
       <header className="header shell">
-        <a className="brand" href="#inicio">
+        <a className="brand" ="#inicio">
           <span className="brandmark">
             <Heart size={22} fill="currentColor" />
           </span>
@@ -190,10 +190,10 @@ export default function Home() {
         </nav>
 
         <div className="header-actions">
-          <a className="icon-button" aria-label="Perfil" href="#vender">
+          <a className="icon-button" aria-label="Perfil" href="/vender">
             <UserRound size={19} />
           </a>
-          <a className="button coral-button" href="#vender">
+          <a className="button coral-button" href="/vender">
             <Plus size={17} /> Quero vender
           </a>
         </div>
@@ -220,7 +220,7 @@ export default function Home() {
             <a className="button coral-button" href="#produtos">
               Explorar achadinhos <ArrowRight size={17} />
             </a>
-            <a className="button light-button" href="#vender">
+            <a className="button light-button" href="/vender">
               Quero desapegar
             </a>
           </div>
@@ -431,7 +431,7 @@ export default function Home() {
 
                     <p>{product.description}</p>
 
-                    <a className="contact-button" href="#vender">
+                    <a className="contact-button" href="/vender">
                       <MessageCircle size={16} /> Tenho interesse
                     </a>
                   </div>
@@ -457,7 +457,7 @@ export default function Home() {
           </p>
         </div>
 
-        <a className="button purple-button" href="#vender">
+        <a className="button purple-button" href="/vender">
           Anunciar grátis <ArrowRight size={17} />
         </a>
 
