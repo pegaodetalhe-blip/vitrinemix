@@ -3,9 +3,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Search, Heart, UserRound, MapPin, Shirt, Footprints,
-  Smartphone, Armchair, Sparkles, Bike, Baby, Grid2X2,
-  MessageCircle, ArrowRight, Plus, SlidersHorizontal
+  Search,
+  Heart,
+  UserRound,
+  MapPin,
+  Shirt,
+  Footprints,
+  Smartphone,
+  Armchair,
+  Sparkles,
+  Bike,
+  Baby,
+  Grid2X2,
+  MessageCircle,
+  ArrowRight,
+  Plus,
+  SlidersHorizontal
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -18,6 +31,12 @@ type Product = {
   condition: string;
   seller_id: string;
   created_at: string;
+};
+
+type ProductPhoto = {
+  product_id: string;
+  photo_url: string;
+  position: number;
 };
 
 const categories = [
@@ -39,12 +58,15 @@ const money = (value: number) =>
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [photos, setPhotos] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadProducts() {
       if (!supabase) {
         setError("A conexão com o banco de dados não está configurada.");
@@ -54,21 +76,72 @@ export default function Home() {
 
       const { data, error: queryError } = await supabase
         .from("products")
-        .select("id, title, description, category, price, condition, seller_id, created_at")
+        .select(
+          "id, title, description, category, price, condition, seller_id, created_at"
+        )
         .eq("status", "active")
         .order("created_at", { ascending: false });
 
+      if (cancelled) return;
+
       if (queryError) {
-        console.error("Erro ao carregar anúncios:", queryError.message);
-        setError("Não foi possível carregar os anúncios. Tente novamente mais tarde.");
+        console.error(
+          "Erro ao carregar anúncios:",
+          queryError.message
+        );
+        setError(
+          "Não foi possível carregar os anúncios. Tente novamente mais tarde."
+        );
+        setLoading(false);
+        return;
+      }
+
+      const loadedProducts = (data ?? []) as Product[];
+      setProducts(loadedProducts);
+
+      if (loadedProducts.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const productIds = loadedProducts.map((product) => product.id);
+
+      const { data: photoData, error: photoError } = await supabase
+        .from("product_photos")
+        .select("product_id, photo_url, position")
+        .in("product_id", productIds)
+        .order("position", { ascending: true });
+
+      if (cancelled) return;
+
+      if (photoError) {
+        console.error(
+          "Erro ao carregar fotos dos anúncios:",
+          photoError.message
+        );
       } else {
-        setProducts((data ?? []) as Product[]);
+        const photoMap: Record<string, string> = {};
+
+        for (const photo of (photoData ?? []) as ProductPhoto[]) {
+          if (
+            !photoMap[photo.product_id] &&
+            photo.photo_url
+          ) {
+            photoMap[photo.product_id] = photo.photo_url;
+          }
+        }
+
+        setPhotos(photoMap);
       }
 
       setLoading(false);
     }
 
     loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -79,10 +152,14 @@ export default function Home() {
         !term ||
         product.title.toLocaleLowerCase("pt-BR").includes(term) ||
         product.category.toLocaleLowerCase("pt-BR").includes(term) ||
-        product.description.toLocaleLowerCase("pt-BR").includes(term);
+        (product.description ?? "")
+          .toLocaleLowerCase("pt-BR")
+          .includes(term);
 
       const matchesCategory =
-        !category || product.category.toLocaleLowerCase("pt-BR") === category.toLocaleLowerCase("pt-BR");
+        !category ||
+        product.category.toLocaleLowerCase("pt-BR") ===
+          category.toLocaleLowerCase("pt-BR");
 
       return matchesSearch && matchesCategory;
     });
@@ -97,76 +174,140 @@ export default function Home() {
 
       <header className="header shell">
         <a className="brand" href="#inicio">
-          <span className="brandmark"><Heart size={22} fill="currentColor" /></span>
-          <span>Vitrine<span className="coral">Mix</span><small>Compre · Venda · Renove</small></span>
+          <span className="brandmark">
+            <Heart size={22} fill="currentColor" />
+          </span>
+          <span>
+            Vitrine<span className="coral">Mix</span>
+            <small>Compre · Venda · Renove</small>
+          </span>
         </a>
+
         <nav>
           <a href="#inicio">Início</a>
           <a href="#categorias">Categorias</a>
           <a href="#produtos">Achadinhos</a>
         </nav>
+
         <div className="header-actions">
-          <a className="icon-button" aria-label="Perfil" href="#vender"><UserRound size={19}/></a>
-          <a className="button coral-button" href="#vender"><Plus size={17}/> Quero vender</a>
+          <a className="icon-button" aria-label="Perfil" href="#vender">
+            <UserRound size={19} />
+          </a>
+          <a className="button coral-button" href="#vender">
+            <Plus size={17} /> Quero vender
+          </a>
         </div>
       </header>
 
       <section className="hero shell" id="inicio">
         <div className="hero-copy">
-          <span className="eyebrow"><Sparkles size={15}/> SEU PRÓXIMO ACHADO ESTÁ AQUI</span>
-          <h1>Pequenos preços.<br/><span>Grandes histórias.</span></h1>
-          <p>Encontre coisas incríveis, dê um novo destino ao que já existe e faça bons negócios pertinho de você.</p>
+          <span className="eyebrow">
+            <Sparkles size={15} /> SEU PRÓXIMO ACHADO ESTÁ AQUI
+          </span>
+
+          <h1>
+            Pequenos preços.
+            <br />
+            <span>Grandes histórias.</span>
+          </h1>
+
+          <p>
+            Encontre coisas incríveis, dê um novo destino ao que já existe
+            e faça bons negócios pertinho de você.
+          </p>
+
           <div className="hero-actions">
-            <a className="button coral-button" href="#produtos">Explorar achadinhos <ArrowRight size={17}/></a>
-            <a className="button light-button" href="#vender">Quero desapegar</a>
+            <a className="button coral-button" href="#produtos">
+              Explorar achadinhos <ArrowRight size={17} />
+            </a>
+            <a className="button light-button" href="#vender">
+              Quero desapegar
+            </a>
           </div>
+
           <div className="trust-row">
-            <span><span className="trust-icon">✓</span> Fale direto com quem vende</span>
-            <span><MapPin size={15}/> Negócios locais</span>
+            <span>
+              <span className="trust-icon">✓</span>
+              Fale direto com quem vende
+            </span>
+            <span>
+              <MapPin size={15} /> Negócios locais
+            </span>
           </div>
         </div>
-        <div className="hero-art" aria-label="Ilustração decorativa de produtos reutilizados">
+
+        <div
+          className="hero-art"
+          aria-label="Ilustração decorativa de produtos reutilizados"
+        >
           <div className="art-orbit orbit-one"></div>
           <div className="art-orbit orbit-two"></div>
           <div className="art-spark spark-a">✦</div>
           <div className="art-spark spark-b">✧</div>
           <div className="art-bubble bubble-one">♻️</div>
           <div className="art-bubble bubble-two">♡</div>
-          <div className="hero-objects"><span>🪴</span><span>👜</span><span>👟</span><span>📚</span></div>
-          <div className="art-caption"><strong>Achados com história</strong><span>Mais valor. Menos desperdício.</span></div>
+          <div className="hero-objects">
+            <span>🪴</span>
+            <span>👜</span>
+            <span>👟</span>
+            <span>📚</span>
+          </div>
+          <div className="art-caption">
+            <strong>Achados com história</strong>
+            <span>Mais valor. Menos desperdício.</span>
+          </div>
         </div>
       </section>
 
       <section className="searchbar shell">
         <div className="search-input">
-          <Search size={20}/>
+          <Search size={20} />
           <input
             aria-label="Buscar produtos"
             placeholder="O que você está procurando hoje?"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <button type="button" aria-label="Limpar busca" onClick={() => setSearch("")}>
-            <SlidersHorizontal size={19}/>
+          <button
+            type="button"
+            aria-label="Limpar busca"
+            onClick={() => setSearch("")}
+          >
+            <SlidersHorizontal size={19} />
           </button>
         </div>
-        <div className="location-select"><MapPin size={17}/> Campos dos Goytacazes <span>⌄</span></div>
+
+        <div className="location-select">
+          <MapPin size={17} /> Campos dos Goytacazes <span>⌄</span>
+        </div>
       </section>
 
       <section className="section shell" id="categorias">
         <div className="section-heading">
-          <div><span className="eyebrow">EXPLORE POR CATEGORIA</span><h2>Qual vai ser o seu achado?</h2></div>
-          <button className="text-link" onClick={() => setCategory("")}>Ver todas <ArrowRight size={16}/></button>
+          <div>
+            <span className="eyebrow">EXPLORE POR CATEGORIA</span>
+            <h2>Qual vai ser o seu achado?</h2>
+          </div>
+          <button className="text-link" onClick={() => setCategory("")}>
+            Ver todas <ArrowRight size={16} />
+          </button>
         </div>
+
         <div className="category-grid">
           {categories.map(({ name, icon: Icon, tint }) => (
             <button
               type="button"
-              className={`category ${category === name ? "selected" : ""}`}
+              className={`category ${
+                category === name ? "selected" : ""
+              }`}
               key={name}
-              onClick={() => setCategory(category === name ? "" : name)}
+              onClick={() =>
+                setCategory(category === name ? "" : name)
+              }
             >
-              <span className={`category-icon ${tint}`}><Icon size={24}/></span>
+              <span className={`category-icon ${tint}`}>
+                <Icon size={24} />
+              </span>
               <span>{name}</span>
             </button>
           ))}
@@ -177,11 +318,21 @@ export default function Home() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">GARIMPOS DA COMUNIDADE</span>
-            <h2>Achadinhos fresquinhos <span className="heading-spark">✳</span></h2>
+            <h2>
+              Achadinhos fresquinhos{" "}
+              <span className="heading-spark">✳</span>
+            </h2>
             <p>Produtos com novas histórias esperando por você.</p>
           </div>
-          <button className="text-link" onClick={() => { setSearch(""); setCategory(""); }}>
-            Limpar filtros <ArrowRight size={16}/>
+
+          <button
+            className="text-link"
+            onClick={() => {
+              setSearch("");
+              setCategory("");
+            }}
+          >
+            Limpar filtros <ArrowRight size={16} />
           </button>
         </div>
 
@@ -192,12 +343,25 @@ export default function Home() {
         ) : filteredProducts.length === 0 ? (
           <div className="empty-state">
             <span>🛍️</span>
-            <h3>{products.length === 0 ? "A vitrine está esperando seus primeiros anúncios!" : "Nenhum produto encontrado."}</h3>
-            <p>{products.length === 0
-              ? "Os produtos publicados pelos vendedores aparecerão aqui."
-              : "Tente outro termo ou selecione uma categoria diferente."}</p>
+            <h3>
+              {products.length === 0
+                ? "A vitrine está esperando seus primeiros anúncios!"
+                : "Nenhum produto encontrado."}
+            </h3>
+            <p>
+              {products.length === 0
+                ? "Os produtos publicados pelos vendedores aparecerão aqui."
+                : "Tente outro termo ou selecione uma categoria diferente."}
+            </p>
+
             {category || search ? (
-              <button className="button coral-button" onClick={() => { setSearch(""); setCategory(""); }}>
+              <button
+                className="button coral-button"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("");
+                }}
+              >
                 Limpar filtros
               </button>
             ) : null}
@@ -205,25 +369,70 @@ export default function Home() {
         ) : (
           <div className="product-grid">
             {filteredProducts.map((product, index) => {
-              const tint = ["peach", "lavender", "mint", "butter"][index % 4];
+              const tint = ["peach", "lavender", "mint", "butter"][
+                index % 4
+              ];
 
               return (
                 <article className="product-card" key={product.id}>
-                  <div className={`product-visual ${tint}`}>
-                    <span className="condition">{product.condition || "Usado"}</span>
-                    <span className="product-emoji">🛍️</span>
+                  <div
+                    className={`product-visual ${tint}`}
+                    style={{
+                      position: "relative",
+                      overflow: "hidden"
+                    }}
+                  >
+                    {photos[product.id] ? (
+                      <img
+                        src={photos[product.id]}
+                        alt={product.title}
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          position: "absolute",
+                          inset: 0
+                        }}
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <span className="product-emoji">🛍️</span>
+                    )}
+
+                    <span className="condition">
+                      {product.condition === "new"
+                        ? "Novo"
+                        : product.condition === "used"
+                          ? "Usado"
+                          : product.condition}
+                    </span>
+
                     <span className="visual-spark">✦</span>
                   </div>
+
                   <div className="product-info">
-                    <span className="product-category">{product.category}</span>
+                    <span className="product-category">
+                      {product.category}
+                    </span>
+
                     <h3>{product.title}</h3>
-                    <strong className="price">{money(Number(product.price))}</strong>
+
+                    <strong className="price">
+                      {money(Number(product.price))}
+                    </strong>
+
                     <div className="product-location">
-  <MapPin size={13}/>Campos dos Goytacazes
-</div>
+                      <MapPin size={13} />
+                      Campos dos Goytacazes
+                    </div>
+
                     <p>{product.description}</p>
+
                     <a className="contact-button" href="#vender">
-                      <MessageCircle size={16}/> Tenho interesse
+                      <MessageCircle size={16} /> Tenho interesse
                     </a>
                   </div>
                 </article>
@@ -234,22 +443,39 @@ export default function Home() {
       </section>
 
       <section className="sell-banner shell" id="vender">
-        <div className="sell-icon"><Heart size={28} fill="currentColor"/></div>
+        <div className="sell-icon">
+          <Heart size={28} fill="currentColor" />
+        </div>
+
         <div>
           <span className="eyebrow">SEU ARMÁRIO MERECE ESPAÇO</span>
-          <h2>Tem algo parado? <span>Faça circular!</span></h2>
-          <p>Anuncie em poucos passos e encontre alguém que vai amar seu achado.</p>
+          <h2>
+            Tem algo parado? <span>Faça circular!</span>
+          </h2>
+          <p>
+            Anuncie em poucos passos e encontre alguém que vai amar seu achado.
+          </p>
         </div>
-        <a className="button purple-button" href="#vender">Anunciar grátis <ArrowRight size={17}/></a>
+
+        <a className="button purple-button" href="#vender">
+          Anunciar grátis <ArrowRight size={17} />
+        </a>
+
         <div className="banner-decoration">✦　♡　✧</div>
       </section>
 
       <footer className="footer">
         <div className="shell footer-inner">
           <a className="brand footer-brand" href="#inicio">
-            <span className="brandmark"><Heart size={20} fill="currentColor"/></span>
-            <span>Vitrine<span className="coral">Mix</span><small>Compre · Venda · Renove</small></span>
+            <span className="brandmark">
+              <Heart size={20} fill="currentColor" />
+            </span>
+            <span>
+              Vitrine<span className="coral">Mix</span>
+              <small>Compre · Venda · Renove</small>
+            </span>
           </a>
+
           <p>Boas descobertas merecem circular. 💜</p>
           <span>Projeto comunitário • Campos dos Goytacazes e região</span>
         </div>
